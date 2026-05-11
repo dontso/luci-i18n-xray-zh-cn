@@ -1,0 +1,35 @@
+name: Convert PO to LMO
+
+on:
+  workflow_dispatch: # 手动触发按钮
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4 # 自动拉取你当前仓库的代码
+
+      - name: Build po2lmo Tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git
+          git clone --depth 1 https://github.com/openwrt/luci.git
+          cd luci/modules/luci-base/src
+          make po2lmo
+          sudo cp po2lmo /usr/local/bin/
+
+      - name: Convert PO files
+        run: |
+          mkdir -p output
+          find . -name "*.po" | while read file; do
+            # 强制输出为 xray.zh-cn.lmo 方便你直接使用
+            echo "Converting $file to xray.zh-cn.lmo"
+            po2lmo "$file" "output/xray.zh-cn.lmo"
+          done
+
+      - name: Upload LMO Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-translation-file
+          path: output/*.lmo
